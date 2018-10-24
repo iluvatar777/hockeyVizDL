@@ -1,0 +1,21 @@
+{
+  "name": "hockyviz",
+  "version": "1.0.0",
+  "description": "scrapes hockeyviz.com images",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "hockey",
+    "nhl",
+    "hockyviz",
+    "dataviz"
+  ],
+  "author": "Matthew Giesmann",
+  "license": "ISC",
+  "dependencies": {
+    "dateformat": "^3.0.3",
+    "image-downloader": "^3.4.1"
+  }
+}
