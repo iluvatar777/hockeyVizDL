@@ -11,10 +11,6 @@ const fetch = require("node-fetch");
 const cheerio = require('cheerio');
 
 //================ helper methods ================
-//creates dir if it does not already exist
-const touchDir = function(dir) {
-	!fs.existsSync(dir) && fs.mkdirSync(dir);
-};
 //returns today's date, but flips over at 1:00 EST the next day
 const getHockeyDate = function() {
 	let now = new Date();
@@ -33,7 +29,7 @@ const teamTypes=["shotLocOff","shotLocDef","shotLocOffPP","shotLocDefPK","hexesP
 
 //================ web functions ================
 
-async function downloadIMG(options, redownload = false) {
+const downloadIMG = async function(options, redownload = false) {
   if (fs.existsSync(options.dest) && !redownload) {
   	logger.debug("skip redownload: " + options.dest) 
   	return
@@ -48,7 +44,7 @@ async function downloadIMG(options, redownload = false) {
 
 //gets the teams that played a game in the last updated day on hockyviz
 //could be generalized by replacing first() with selecting by the date string (e.g. "Oct 24")
-async function getMostRecentTeams() {
+const getMostRecentTeams = async function () {
   try {
     const response = await fetch(gamesURL);
     const html = await response.text()
@@ -60,7 +56,29 @@ async function getMostRecentTeams() {
     logger.warn("Error retrieving recently played teams " + error);
   }
 };
- 
+
+//================ disk functions ================
+//creates dir if it does not already exist
+const touchDir = function(dir) {
+	!fs.existsSync(dir) && fs.mkdirSync(dir);
+};
+
+
+//TODO
+const getDiskDates = function(options) {
+    return new Promise((res, rej) => {
+        fs.access(options.dest, (err, data) => {
+            if (err) rej(err)
+            else res(data)
+        })
+    })
+};
+//TODO
+const getMostRecentDiskDate = function(options) {
+	getDiskDates()
+	return 0
+}
+
 //================ functions ================
 
 //can be run once to create the directory structure for images
@@ -74,9 +92,12 @@ const initTeamImageDirs = function(rootDir = diskRoot, year = yearDefault) {
 	for (const dir in dirs) {touchDir(dirs[dir]);}
 }
 
-const collectTeamItems = function(team, year = yearDefault) {
+const collectTeamItem = function(team, item, year = yearDefault) {
 	const date = getHockeyDate();
-	return teamTypes.map(x => [webRoot, x, year, team, date, diskRoot]);
+	return [webRoot, item, year, team, date, diskRoot];
+};
+const collectTeamItems = function(team, year = yearDefault) {
+	return teamTypes.map(x => collectTeamItem(team, x, year));
 };
 const collectAllTeamItems = function(teams = allTeams, year = yearDefault) {
 	let opts = [];
@@ -85,18 +106,20 @@ const collectAllTeamItems = function(teams = allTeams, year = yearDefault) {
 	});
 	return opts;
 };
-const dlOptionsFromTeamItems = function(teamItems){
+const optionsFromTeamItems = function(teamItems){
 	return teamItems.map(x => { return {url: [x[0],x[1],x[2],x[3]].join("/"), dest: path.join(x[5],x[2],"team",x[3],x[1],x[4])+".png"}});
 };
 //call this without arguments to get options for all possible images for today
 const dlOptionsForTeams = function(teams = allTeams, year = yearDefault) {
-	return dlOptionsFromTeamItems(collectAllTeamItems(teams, year));
+	return optionsFromTeamItems(collectAllTeamItems(teams, year));
 }
+
 //================ entrypoints and exports ================
 com
 	.option('-i, --init', 'Initialize directory tree for images.')
-	.option('-f, --fullDownload', 'download all images for all teams')
-	.option('-d, --download', 'download all images for yesterday\'s updates')
+	.option('-f, --fullDownload', 'Download all images for all teams')
+	.option('-d, --download', 'Download all images for yesterday\'s updates')
+	.option('-r, --showRecentTeams', 'Prints teams that played most recently')
 	.parse(process.argv);
 
 const init = function() {
@@ -132,7 +155,13 @@ else if (com.fullDownload) {
 	fullDownload();
 }
 
+if (com.showRecentTeams){
+	getMostRecentTeams().
+	then(x => console.log(x.toString()))
+}
 
 module.exports.init = init;
 module.exports.fullDownload = fullDownload;
 module.exports.download = download;
+
+module.exports.getMostRecentTeams = getMostRecentTeams;
