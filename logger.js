@@ -1,5 +1,6 @@
 "use strict"
 
+const path = require('path');
 const logger = require('winston');
 const format = logger.format;
 const config = require('config');
@@ -16,7 +17,7 @@ logger.add(new logger.transports.Console({
     )
 }));
 logger.add(new logger.transports.File({
-	filename : 'logs/activity.log',
+	filename : path.join(config.get('logger.dir'),'/activity.log'),
 	level : config.get('logger.fileLevel'),
     format: format.combine(
       format.timestamp(),

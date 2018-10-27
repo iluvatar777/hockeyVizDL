@@ -22,6 +22,7 @@ const getHockeyDate = function() {
 
 //================ constants ================
 const diskRoot = config.get("diskRoot");
+const logDir = config.get("logger.dir");
 const yearDefault = config.get("year").toString();
 const webRoot = "http://hockeyviz.com/fixedImg";
 const gamesURL = "http://hockeyviz.com/games/" + yearDefault;
@@ -71,7 +72,6 @@ const getDiskDates = async function(dir) {
 const getMostRecentDiskDate = async function(dir) {
 	const dates = await getDiskDates(dir)
 	const idates = dates.map(x => parseInt(x))
-	console.log(idates)
 	return Math.max(...idates)
 }
 
@@ -79,7 +79,7 @@ const getMostRecentDiskDate = async function(dir) {
 
 //can be run once to create the directory structure for images
 const initTeamImageDirs = async function(rootDir = diskRoot, year = yearDefault) {
-	let dirs = [rootDir, path.join(rootDir, year), path.join(rootDir, year, "team")];
+	let dirs = [logDir, rootDir, path.join(rootDir, year), path.join(rootDir, year, "team")];
 	for (const team in allTeams) {
 		dirs.push(path.join(rootDir, year, "team", allTeams[team]));
 		for (const type in teamTypes) {
@@ -121,16 +121,16 @@ com
 	.option('-r, --showRecentTeams', 'Prints teams that played most recently')
 	.parse(process.argv);
 
-const init = function() {
+const init = async function() {
 	try {
-		initTeamImageDirs();
+		await initTeamImageDirs();
 		logger.info("Image directories initialized.")
 	} catch (e) {
 		logger.error("Error during dir init:" + e)
 	}
 }
 
-const fullDownload = function() {
+const fullDownload = async function() {
 	dlOptionsForTeams().forEach(function(listItem, index){
 		downloadIMG(listItem);
 	});
