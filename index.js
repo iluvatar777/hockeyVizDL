@@ -14,10 +14,11 @@ const config = require('config');
 
 //================ helper methods ================
 //returns today's date, but flips over at 1:00 EST the next day
-const getHockeyDate = function() {
+const getHockeyDate = function(format = 0) {
+	const fstring = format == 0 ? "yyyymmdd" : "mmm dd";
 	let now = new Date();
 	now.setHours(now.getHours() - 13)
-	return dateFormat(now, "yyyymmdd");
+	return dateFormat(now, fstring);
 };
 
 //================ constants ================
@@ -45,14 +46,15 @@ const downloadIMG = async function(options, redownload = false) {
   }
 };
 
-//gets the teams that played a game in the last updated day on hockyviz
-//could be generalized by replacing first() with selecting by the date string (e.g. "Oct 24")
-const getMostRecentTeams = async function () {
+//gets the teams that played a game on the specified day in 'mmm dd' format. Defaults to most recent hockey day
+const getTeamsForDay = async function (dateString) {
+  dateString = dateString || getHockeyDate(1);
   try {
     const response = await fetch(gamesURL);
     const html = await response.text()
     const $ = cheerio.load(html)
-    const list = $(".table>tbody>tr").first().find('a').text().replace(/\n/g,' ').replace(/at|\t|/g,'').trim().split('  ')
+    //const list = $(".table>tbody>tr").first().find('a').text().replace(/\n/g,' ').replace(/at|\t|/g,'').trim().split('  ')
+    const list = $(".table>tbody>tr").filter(function(i){return $(this).text().includes(dateString.replace(' ',String.fromCharCode(160)))}).find('a').text().replace(/\n/g,' ').replace(/at|\t|/g,'').trim().split('  ')
     logger.debug("Retrieved recently played teams " + list)
     return list
   } catch (error) {
@@ -138,7 +140,7 @@ const fullDownload = async function() {
 
 //main download function - downloads teams that played yesterday
 const download = async function() {
-	const recentTeams = await getMostRecentTeams()
+	const recentTeams = await getTeamsForDay()
 	dlOptionsForTeams(recentTeams).forEach(function(listItem, index){
 		downloadIMG(listItem);
 	});
@@ -155,7 +157,7 @@ else if (com.fullDownload) {
 }
 
 if (com.showRecentTeams){
-	getMostRecentTeams().
+	getTeamsForDay().
 	then(x => console.log(x.toString()))
 }
 
@@ -163,4 +165,4 @@ module.exports.init = init;
 module.exports.fullDownload = fullDownload;
 module.exports.download = download;
 
-module.exports.getMostRecentTeams = getMostRecentTeams;
+module.exports.getTeamsForDay = getTeamsForDay;
