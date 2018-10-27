@@ -2,7 +2,7 @@
 
 const imgDL = require('image-downloader');
 const path = require('path');
-const fs = require('fs');
+const fse = require('fs-extra');
 const dateFormat = require('dateformat');
 const logger = require('./logger.js');
 const com = require('commander');
@@ -32,7 +32,7 @@ const teamTypes=["shotLocOff","shotLocDef","shotLocOffPP","shotLocDefPK","hexesP
 //================ web functions ================
 
 const downloadIMG = async function(options, redownload = false) {
-  if (fs.existsSync(options.dest) && !redownload) {
+  if (fse.existsSync(options.dest) && !redownload) {
   	logger.debug("skip redownload: " + options.dest) 
   	return
   }
@@ -60,31 +60,25 @@ const getMostRecentTeams = async function () {
 };
 
 //================ disk functions ================
-//creates dir if it does not already exist
-const touchDir = function(dir) {
-	!fs.existsSync(dir) && fs.mkdirSync(dir);
-};
-
-
-//TODO
-const getDiskDates = function(options) {
-    return new Promise((res, rej) => {
-        fs.access(options.dest, (err, data) => {
-            if (err) rej(err)
-            else res(data)
-        })
-    })
+//returnslist of dates for which images matching the dir passed (stips file if extension present)
+//e.g ["20181024", "20181026", "20181027"]
+const getDiskDates = async function(dir) {
+	const check = (path.extname(dir) == "" ? dir : path.dirname(dir));
+	const files = await fse.readdir(check)
+	return files.map(x => path.basename(x, ".png"))
 };
 //TODO
-const getMostRecentDiskDate = function(options) {
-	getDiskDates()
-	return 0
+const getMostRecentDiskDate = async function(dir) {
+	const dates = await getDiskDates(dir)
+	const idates = dates.map(x => parseInt(x))
+	console.log(idates)
+	return Math.max(...idates)
 }
 
 //================ functions ================
 
 //can be run once to create the directory structure for images
-const initTeamImageDirs = function(rootDir = diskRoot, year = yearDefault) {
+const initTeamImageDirs = async function(rootDir = diskRoot, year = yearDefault) {
 	let dirs = [rootDir, path.join(rootDir, year), path.join(rootDir, year, "team")];
 	for (const team in allTeams) {
 		dirs.push(path.join(rootDir, year, "team", allTeams[team]));
@@ -92,7 +86,8 @@ const initTeamImageDirs = function(rootDir = diskRoot, year = yearDefault) {
 			dirs.push(path.join(rootDir, year, "team", allTeams[team], teamTypes[type]))
 	}}
 	for (const dir in dirs) {
-		touchDir(dirs[dir]);}
+		await fse.ensureDir(dirs[dir]);
+	}
 }
 
 const collectTeamItem = function(team, item, year = yearDefault) {
