@@ -9,7 +9,7 @@ const com = require('commander');
 const fetch = require("node-fetch");
 const cheerio = require('cheerio');
 
-process.env.COMPUTERNAME = process.env.NODE_ENV
+process.env.COMPUTERNAME = process.env.NODE_ENV || process.env.USER;
 const config = require('config');
 
 //================ helper methods ================

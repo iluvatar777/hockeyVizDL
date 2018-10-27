@@ -1,8 +1,8 @@
 {
-  "diskRoot": "/Users/mgeisman/Documents/Projects/hockeyVizDL/images",
+  "diskRoot": "images",
   "year": 1819,
   "logger" : {
-  	"dir": "/Users/mgeisman/Documents/Projects/hockeyVizDL/logs",
+  	"dir": "logs",
     "consoleLevel" : "verbose",
     "fileLevel" : "debug"
   }
