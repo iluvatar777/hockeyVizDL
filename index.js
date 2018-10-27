@@ -14,10 +14,14 @@ const config = require('config');
 
 //================ helper methods ================
 //returns today's date, but flips over at 1:00 EST the next day
-const getHockeyDate = function(format = 0) {
+//format:
+//	0 yyyymmdd	20181015
+//	1 mmm dd	Oct 25
+const getHockeyDate = function(daysAgo = 0, format = 0) {
 	const fstring = format == 0 ? "yyyymmdd" : "mmm dd";
 	let now = new Date();
 	now.setHours(now.getHours() - 13)
+	now.setDate(now.getDate() - daysAgo)
 	return dateFormat(now, fstring);
 };
 
@@ -46,9 +50,10 @@ const downloadIMG = async function(options, redownload = false) {
   }
 };
 
-//gets the teams that played a game on the specified day in 'mmm dd' format. Defaults to most recent hockey day
+//gets the teams that played a game on the specified day in 'mmm dd' format. 
+//Defaults to most recent hockey day with publically available data
 const getTeamsForDay = async function (dateString) {
-  dateString = dateString || getHockeyDate(1);
+  dateString = dateString || getHockeyDate(1,1);
   try {
     const response = await fetch(gamesURL);
     const html = await response.text()
@@ -93,7 +98,7 @@ const initTeamImageDirs = async function(rootDir = diskRoot, year = yearDefault)
 }
 
 const collectTeamItem = function(team, item, year = yearDefault) {
-	const date = getHockeyDate();
+	const date = getHockeyDate(1);
 	return [webRoot, item, year, team, date, diskRoot];
 };
 const collectTeamItems = function(team, year = yearDefault) {
@@ -140,7 +145,7 @@ const fullDownload = async function() {
 
 //main download function - downloads teams that played yesterday
 const download = async function() {
-	const recentTeams = await getTeamsForDay()
+	const recentTeams = await getTeamsForDay(1)
 	dlOptionsForTeams(recentTeams).forEach(function(listItem, index){
 		downloadIMG(listItem);
 	});
