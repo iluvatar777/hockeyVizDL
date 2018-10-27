@@ -3,12 +3,14 @@
 const imgDL = require('image-downloader');
 const path = require('path');
 const fs = require('fs');
-const config = require('config');
 const dateFormat = require('dateformat');
 const logger = require('./logger.js');
 const com = require('commander');
 const fetch = require("node-fetch");
 const cheerio = require('cheerio');
+
+process.env.COMPUTERNAME = process.env.NODE_ENV
+const config = require('config');
 
 //================ helper methods ================
 //returns today's date, but flips over at 1:00 EST the next day
@@ -115,6 +117,7 @@ const dlOptionsForTeams = function(teams = allTeams, year = yearDefault) {
 }
 
 //================ entrypoints and exports ================
+//command line options (node index.js -h)
 com
 	.option('-i, --init', 'Initialize directory tree for images.')
 	.option('-f, --fullDownload', 'Download all images for all teams')
@@ -165,3 +168,5 @@ module.exports.fullDownload = fullDownload;
 module.exports.download = download;
 
 module.exports.getMostRecentTeams = getMostRecentTeams;
+
+console.log(config)

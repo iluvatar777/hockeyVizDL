@@ -1,5 +1,7 @@
-images/*
-.DS_Store
-node_modules/*
-logs/activity*
 test.js
+.DS_Store
+config/*
+!config/default.json
+images/*
+logs/activity*
+node_modules/*

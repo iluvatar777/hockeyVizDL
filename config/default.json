@@ -1,5 +1,4 @@
 {
-	// Customer module configs 
   "diskRoot": "/Users/mgeisman/Documents/Projects/hockeyVizDL/images",
   "year": 1819,
   "logger" : {
