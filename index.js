@@ -86,12 +86,13 @@ const getMostRecentDiskDate = function(options) {
 //can be run once to create the directory structure for images
 const initTeamImageDirs = function(rootDir = diskRoot, year = yearDefault) {
 	let dirs = [rootDir, path.join(rootDir, year), path.join(rootDir, year, "team")];
-	for (const team in teams) {
-		dirs.push(path.join(rootDir, year, "team", teams[team]));
+	for (const team in allTeams) {
+		dirs.push(path.join(rootDir, year, "team", allTeams[team]));
 		for (const type in teamTypes) {
-			dirs.push(path.join(rootDir, year, "team", teams[team], teamTypes[type]))
+			dirs.push(path.join(rootDir, year, "team", allTeams[team], teamTypes[type]))
 	}}
-	for (const dir in dirs) {touchDir(dirs[dir]);}
+	for (const dir in dirs) {
+		touchDir(dirs[dir]);}
 }
 
 const collectTeamItem = function(team, item, year = yearDefault) {
@@ -130,7 +131,7 @@ const init = function() {
 		initTeamImageDirs();
 		logger.info("Image directories initialized.")
 	} catch (e) {
-		logger.error("Error during directory initialization.")
+		logger.error("Error during dir init:" + e)
 	}
 }
 
@@ -168,5 +169,3 @@ module.exports.fullDownload = fullDownload;
 module.exports.download = download;
 
 module.exports.getMostRecentTeams = getMostRecentTeams;
-
-console.log(config)
