@@ -81,13 +81,24 @@ const getMostRecentDiskDate = async function(dir) {
 	const idates = dates.map(x => parseInt(x))
 	return Math.max(...idates)
 }
-// takes day as yyyymmdd string
+// takes file name as a sting, usually in format yyyymmdd
 const deleteDayforTeam = async function(team, date) {
 	const items = optionsFromTeamItems(collectTeamItems(team, date)).map(x => x.dest);
 	for (const item in items) {
 		logger.debug("Deleting file: " + items[item])
 		await fse.unlink(items[item])
 			.catch(e => logger.warn('Error deleting file ' + items[item] + " : " + e));
+	}
+}
+// renames all files with a given name for a team
+// takes day as yyyymmdd string
+const renameForTeam = async function(team, from, to) {
+	const fromItems = optionsFromTeamItems(collectTeamItems(team, from)).map(x => x.dest);
+	const toItems = optionsFromTeamItems(collectTeamItems(team, to)).map(x => x.dest);
+	for (const item in fromItems) {
+		logger.debug("Renaming file: " + fromItems[item] + " > " + to)
+		await fse.rename(items[item], toItems[item])
+			.catch(e => logger.warn('Error renameing ' + fromItems[item] + " > " + to + " : " + e));
 	}
 }
 
@@ -123,7 +134,7 @@ const collectAllTeamItems = function(teams = allTeams, date, year = yearDefault)
 	return opts;
 };
 const optionsFromTeamItems = function(teamItems){
-	return teamItems.map(x => { return {url: [x[0],x[1],x[2],x[3]].join("/"), dest: path.join(x[5],x[2],"team",x[3],x[1],x[4])+".png"}});
+	return teamItems.map(x => { return {url: [x[0],x[1],x[2],x[3]].join("/"), dest: path.join(x[5],x[2],"team",x[3],x[1],x[4]) + ".png"}});
 };
 //call this without arguments to get options for all possible images for today
 const dlOptionsForTeams = function(teams = allTeams, date, year = yearDefault) {
@@ -183,3 +194,6 @@ module.exports.fullDownload = fullDownload;
 module.exports.download = download;
 
 module.exports.getTeamsForDay = getTeamsForDay;
+module.exports.deleteDayforTeam = deleteDayforTeam;
+module.exports.renameForTeam = renameForTeam;
+module.exports.initTeamImageDirs = initTeamImageDirs;
