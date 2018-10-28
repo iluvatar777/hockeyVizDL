@@ -75,11 +75,20 @@ const getDiskDates = async function(dir) {
 	const files = await fse.readdir(check)
 	return files.map(x => path.basename(x, ".png"))
 };
-//TODO
+//Returns an integer value yyyymmdd for the most rect image in dir
 const getMostRecentDiskDate = async function(dir) {
 	const dates = await getDiskDates(dir)
 	const idates = dates.map(x => parseInt(x))
 	return Math.max(...idates)
+}
+// takes day as yyyymmdd string
+const deleteDayforTeam = async function(team, date) {
+	const items = optionsFromTeamItems(collectTeamItems(team, date)).map(x => x.dest);
+	for (const item in items) {
+		logger.debug("Deleting file: " + items[item])
+		await fse.unlink(items[item])
+			.catch(e => logger.warn('Error deleting file ' + items[item] + " : " + e));
+	}
 }
 
 //================ functions ================
@@ -97,14 +106,16 @@ const initTeamImageDirs = async function(rootDir = diskRoot, year = yearDefault)
 	}
 }
 
-const collectTeamItem = function(team, item, year = yearDefault) {
-	const date = getHockeyDate(1);
+const collectTeamItem = function(team, item, date, year = yearDefault) {
+	date = date || getHockeyDate(1);
 	return [webRoot, item, year, team, date, diskRoot];
 };
-const collectTeamItems = function(team, year = yearDefault) {
-	return teamTypes.map(x => collectTeamItem(team, x, year));
+const collectTeamItems = function(team, date, year = yearDefault) {
+	date = date || getHockeyDate(1);
+	return teamTypes.map(x => collectTeamItem(team, x, date, year));
 };
-const collectAllTeamItems = function(teams = allTeams, year = yearDefault) {
+const collectAllTeamItems = function(teams = allTeams, date, year = yearDefault) {
+	date = date || getHockeyDate(1);
 	let opts = [];
 	teams.forEach(function(team, i){
 		opts = opts.concat(collectTeamItems(team, year));
@@ -115,8 +126,9 @@ const optionsFromTeamItems = function(teamItems){
 	return teamItems.map(x => { return {url: [x[0],x[1],x[2],x[3]].join("/"), dest: path.join(x[5],x[2],"team",x[3],x[1],x[4])+".png"}});
 };
 //call this without arguments to get options for all possible images for today
-const dlOptionsForTeams = function(teams = allTeams, year = yearDefault) {
-	return optionsFromTeamItems(collectAllTeamItems(teams, year));
+const dlOptionsForTeams = function(teams = allTeams, date, year = yearDefault) {
+	date = date || getHockeyDate(1);
+	return optionsFromTeamItems(collectAllTeamItems(teams, date, year));
 }
 
 //================ entrypoints and exports ================
