@@ -118,7 +118,7 @@ const collectAllTeamItems = function(teams = allTeams, date, year = yearDefault)
 	date = date || getHockeyDate(1);
 	let opts = [];
 	teams.forEach(function(team, i){
-		opts = opts.concat(collectTeamItems(team, year));
+		opts = opts.concat(collectTeamItems(team, date, year));
 	});
 	return opts;
 };
