@@ -63,7 +63,7 @@ const getTeamsForDay = async function (dateString) {
     logger.debug("Retrieved recently played teams " + list)
     return list
   } catch (error) {
-    logger.warn("Error retrieving recently played teams " + error);
+    logger.warn("Error retrieving recently played teams (" + dateString + ")" + error);
   }
 };
 
@@ -145,7 +145,7 @@ const fullDownload = async function() {
 
 //main download function - downloads teams that played yesterday
 const download = async function() {
-	const recentTeams = await getTeamsForDay(1)
+	const recentTeams = await getTeamsForDay()
 	dlOptionsForTeams(recentTeams).forEach(function(listItem, index){
 		downloadIMG(listItem);
 	});
