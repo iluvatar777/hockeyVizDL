@@ -172,12 +172,10 @@ const download = async function(opts) {
 		const recentTeams = await getTeamsForDay()
 		opts = dlOptionsForTeams(recentTeams)
 	};
-	Promise.all(opts.map(function(x){
-		return downloadIMG(x);
-	}))
-		.then(x => {
+	Promise.all(opts.map(x => downloadIMG(x)))
+		.then(results => {
 			const st = [0,0,0];
-			x.forEach(y => st[y]++);
+			results.forEach(y => st[y]++);
 			logger.info("Downloaded: " + st[1] + ", Skipped: " + st[2]  + ", Errors: " + st[0]);
 		})
 		.catch(e => logger.error("Major error in download " + e))
