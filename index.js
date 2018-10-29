@@ -36,17 +36,19 @@ const allTeams=["CAR","CBJ","N.J","NYR","NYI","PHI","PIT","WSH","BOS","BUF","DET
 const teamTypes=["shotLocOff","shotLocDef","shotLocOffPP","shotLocDefPK","hexesPK","hexesEVd","hexesEVf","hexesPP","overview","teamWowy","scoringNetwork","forwardIcetime","defenderIcetime","minors","forwardCombos","defenderCombos","skaterGoaltending","fLines","dPairs","usage","forwardUsage","defenderUsage","goalieUsage","forwardScoreDeployment","defenderScoreDeployment","zoneDeployment","forwardSkaterContext","defenderSkaterContext"];
 
 //================ web functions ================
-
+//returns 0 for failure, 1 for success and 2 for skip reDL. 
 const downloadIMG = async function(options, redownload = false) {
   if (fse.existsSync(options.dest) && !redownload) {
   	logger.debug("skip redownload: " + options.dest) 
-  	return
+  	return 2
   }
   try {
     const { filename, image } = await imgDL.image(options)
     logger.debug("downloaded: " + filename) // => /path/to/dest/image.jpg 
+    return 1
   } catch (e) {
     logger.warn(e)
+    return 0
   }
 };
 
@@ -161,17 +163,24 @@ const init = async function() {
 }
 
 const fullDownload = async function() {
-	dlOptionsForTeams().forEach(function(listItem, index){
-		downloadIMG(listItem);
-	});
+	await download(dlOptionsForTeams())
 }
 
 //main download function - downloads teams that played yesterday
-const download = async function() {
-	const recentTeams = await getTeamsForDay()
-	dlOptionsForTeams(recentTeams).forEach(function(listItem, index){
-		downloadIMG(listItem);
-	});
+const download = async function(opts) {
+	if (typeof opts == "undefined") {
+		const recentTeams = await getTeamsForDay()
+		opts = dlOptionsForTeams(recentTeams)
+	};
+	Promise.all(opts.map(function(x){
+		return downloadIMG(x);
+	}))
+		.then(x => {
+			const st = [0,0,0];
+			x.forEach(y => st[y]++);
+			logger.info("Downloaded: " + st[1] + ", Skipped: " + st[2]  + ", Errors: " + st[0]);
+		})
+		.catch(e => logger.error("Major error in download " + e))
 }
 
 if (com.init) {
