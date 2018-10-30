@@ -15,10 +15,17 @@ const config = require('config');
 //================ helper methods ================
 //returns today's date, but flips over at 1:00 EST the next day
 //format:
-//	0 yyyymmdd	20181015
-//	1 mmm dd	Oct 25
+//	0 yyyymmdd		20181015
+//	1 mmm dd		Oct 25
+//	2 yyyy-mm-dd	2018-10-15
 const getHockeyDate = function(daysAgo = 0, format = 0) {
-	const fstring = format == 0 ? "yyyymmdd" : "mmm dd";
+	let fstring;
+	switch (format) {
+		case 2:  fstring = "yyyy-mm-dd"; break;
+		case 1:  fstring = "mmm dd";     break;
+		default: fstring = "yyyymmdd";
+	}
+	
 	let now = new Date();
 	now.setHours(now.getHours() - 13)
 	now.setDate(now.getDate() - daysAgo)
@@ -29,11 +36,14 @@ const getHockeyDate = function(daysAgo = 0, format = 0) {
 const diskRoot = config.get("diskRoot");
 const logDir = config.get("logger.dir");
 const yearDefault = config.get("year").toString();
-const webRoot = "http://hockeyviz.com/fixedImg";
+const teamWebRoot = "http://hockeyviz.com/fixedImg";
+const leagueWebRoot = "http://hockeyviz.com/static/img/league";
 const gamesURL = "http://hockeyviz.com/games/" + yearDefault;
 
 const allTeams=["CAR","CBJ","N.J","NYR","NYI","PHI","PIT","WSH","BOS","BUF","DET","FLA","MTL","OTT","T.B","TOR","ANA","ARI","CGY","EDM","L.A","S.J","VAN","VGK","CHI","COL","DAL","MIN","NSH","STL","WPG"];
 const teamTypes=["shotLocOff","shotLocDef","shotLocOffPP","shotLocDefPK","hexesPK","hexesEVd","hexesEVf","hexesPP","overview","teamWowy","scoringNetwork","forwardIcetime","defenderIcetime","minors","forwardCombos","defenderCombos","skaterGoaltending","fLines","dPairs","usage","forwardUsage","defenderUsage","goalieUsage","forwardScoreDeployment","defenderScoreDeployment","zoneDeployment","forwardSkaterContext","defenderSkaterContext"];
+const leagueTypes=[["standingsPoints","pointProj-all-{date}"],["makePlayoffs","makePlayoffs-conf-East-{date}"],["makePlayoffs","makePlayoffs-conf-West-{date}"],["recentPredictive","overallPick-1-{date}"],["recentPredictive","sadness-{date}"],["recentPredictive","presidents-{date}"],["recentDescriptive","shotPlot-25-5v5-cor"],["recentDescriptive","shotPlot-25-5v5-fen"],["recentDescriptive","shotPlot-25-5v5-gol-per-sog"],["recentDescriptive","shotPlot-25-specialTeams-cor"],["recentDescriptive","shotPlot-25-specialTeams-fen"],["recentDescriptive","shotPlot-25-specialTeams-gol-per-sog"],["recentDescriptive","minors"]];
+
 
 //================ web functions ================
 //returns 0 for failure, 1 for success and 2 for skip reDL. 
@@ -104,24 +114,26 @@ const renameForTeam = async function(team, from, to) {
 	}
 }
 
-//================ functions ================
-
 //can be run once to create the directory structure for images
-const initTeamImageDirs = async function(rootDir = diskRoot, year = yearDefault) {
+const initImageDirs = async function(rootDir = diskRoot, year = yearDefault) {
 	let dirs = [logDir, rootDir, path.join(rootDir, year), path.join(rootDir, year, "team")];
 	for (const team in allTeams) {
 		dirs.push(path.join(rootDir, year, "team", allTeams[team]));
 		for (const type in teamTypes) {
 			dirs.push(path.join(rootDir, year, "team", allTeams[team], teamTypes[type]))
 	}}
+	for (const league in leagueTypes) {
+		dirs.push(path.join(diskRoot,year,"league",leagueTypes[league][1].replace("{date}","")));
+	}
 	for (const dir in dirs) {
 		await fse.ensureDir(dirs[dir]);
 	}
 }
 
+//================ functions ================
 const collectTeamItem = function(team, item, date, year = yearDefault) {
 	date = date || getHockeyDate(1);
-	return [webRoot, item, year, team, date, diskRoot];
+	return [teamWebRoot, item, year, team, date, diskRoot];
 };
 const collectTeamItems = function(team, date, year = yearDefault) {
 	date = date || getHockeyDate(1);
@@ -144,6 +156,13 @@ const dlOptionsForTeams = function(teams = allTeams, date, year = yearDefault) {
 	return optionsFromTeamItems(collectAllTeamItems(teams, date, year));
 }
 
+const optionsForLeague = function(year = yearDefault) {
+	const date0 = getHockeyDate(); //not an arg, as only a few items give a date option
+	const date2 = getHockeyDate(0,2);
+	//http://hockeyviz.com/static/img/league/standingsPoints/1819/pointProj-all-{date}.png
+	return leagueTypes.map(type => { return {url: [leagueWebRoot,type[0],year,type[1].replace("{date}",date2)].join("/")+".png", dest: path.join(diskRoot,year,"league",type[1].replace("{date}",""),date0)+".png"} })
+}
+
 //================ entrypoints and exports ================
 //command line options (node index.js -h)
 com
@@ -155,7 +174,7 @@ com
 
 const init = async function() {
 	try {
-		await initTeamImageDirs();
+		await initImageDirs();
 		logger.info("Image directories initialized.")
 	} catch (e) {
 		logger.error("Error during dir init:" + e)
@@ -163,14 +182,14 @@ const init = async function() {
 }
 
 const fullDownload = async function() {
-	await download(dlOptionsForTeams())
+	await download(dlOptionsForTeams().concat(optionsForLeague()))
 }
 
 //main download function - downloads teams that played yesterday
 const download = async function(opts) {
 	if (typeof opts == "undefined") {
 		const recentTeams = await getTeamsForDay()
-		opts = dlOptionsForTeams(recentTeams)
+		opts = dlOptionsForTeams(recentTeams).concat(optionsForLeague())
 	};
 	Promise.all(opts.map(x => downloadIMG(x)))
 		.then(results => {
@@ -203,4 +222,4 @@ module.exports.download = download;
 module.exports.getTeamsForDay = getTeamsForDay;
 module.exports.deleteDayforTeam = deleteDayforTeam;
 module.exports.renameForTeam = renameForTeam;
-module.exports.initTeamImageDirs = initTeamImageDirs;
+module.exports.initImageDirs = initImageDirs;
